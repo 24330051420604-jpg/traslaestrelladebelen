@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>★ Tras la Estrella de Belén</title>
+  <style>
+    :root{
+      --bg1: #0b0b33;
+      --bg2: #000;
+      --gold: #ffd700;
+      --card-bg: rgba(255,255,255,0.1);
+      --muted: #ccc;
+      --white: #fff;
+      --black: #000;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      min-height:100vh;
+      background: linear-gradient(to bottom, var(--bg1), var(--bg2));
+      color:var(--white);
+      font-family: "Segoe UI", Roboto, Arial, sans-serif;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      display:flex;
+      flex-direction:column;
+    }
+
+    header{
+      background: rgba(0,0,0,0.6);
+      padding:10px 20px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      position: sticky;
+      top:0;
+      z-index:1000;
+    }
+    h1.logo{ color:var(--gold); font-size:1.5rem; margin:0; }
+    nav{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .nav-btn{
+      background:transparent;
+      border:none;
+      color:var(--white);
+      cursor:pointer;
+      margin-left:6px;
+      font-weight:600;
+      padding:6px 8px;
+      border-radius:6px;
+      transition:background .18s, transform .12s;
+    }
+    .nav-btn:hover{ background: rgba(255,255,255,0.04); transform: translateY(-1px); }
+    .translate-btn{ color:var(--gold); }
+
+    main{ padding:40px 20px; flex:1; text-align:center; position:relative; overflow:hidden; }
+    section.page{ max-width:1100px; margin:0 auto; text-align:center; padding-top:8px; }
+    h2{ color:var(--gold); margin-top:0; }
+    p{ max-width:900px; margin:10px auto; color: #f3f3f3; line-height:1.5 }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fit,minmax(250px,1fr));
+      gap:20px;
+      margin-top:20px;
+    }
+    .card{
+      background:var(--card-bg);
+      padding:20px;
+      border-radius:12px;
+      text-align:left;
+    }
+    .btn{
+      background:var(--gold);
+      color:var(--black);
+      border:none;
+      border-radius:8px;
+      padding:8px 15px;
+      margin:5px;
+      cursor:pointer;
+    }
+    .small-btn{
+      padding:6px 10px;
+      border-radius:6px;
+      margin:4px;
+    }
+
+    .input, textarea{
+      width:80%;
+      padding:10px;
+      margin:5px;
+      border-radius:8px;
+      border:none;
+      display:block;
+      margin-left:auto;
+      margin-right:auto;
+      font-size:1rem;
+    }
+    textarea{ height:100px; resize:vertical; }
+
+    img.responsive{
+      width:100%;
+      border-radius:10px;
+      display:block;
+    }
+
+    footer{
+      background: #000;
+      padding:15px;
+      color:var(--muted);
+      text-align:center;
+    }
+
+    /* star canvas area */
+    .star-controls{ display:flex; justify-content:center; gap:10px; align-items:center; flex-wrap:wrap; margin-top:8px; }
+
+    /* animated stars background: placed inside main */
+    .stars{
+      position:absolute;
+      top:0;
+      left:0;
+      width:100%;
+      height:100%;
+      background:
+        radial-gradient(2px 2px at 20px 20px, white, transparent),
+        radial-gradient(2px 2px at 50px 50px, white, transparent),
+        radial-gradient(1px 1px at 100px 150px, white, transparent);
+      background-repeat:repeat;
+      animation: moveStars 25s linear infinite;
+      opacity:0.35;
+      z-index:0;
+      pointer-events:none;
+    }
+    @keyframes moveStars{
+      from{ transform: translateY(0) }
+      to{ transform: translateY(100px) }
+    }
+
+    /* responsiveness */
+    @media (max-width:600px){
+      .input, textarea{ width:95% }
+      header{ padding:8px }
+    }
+
+    /* little helpers */
+    .center{ text-align:center }
+    .muted{ color:var(--muted) }
+    .result-text{ margin-top:10px; font-weight:700 }
+
+    /* star svg */
+    .star-svg{ cursor:pointer; margin-top:10px }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 class="logo">★ Tras la Estrella de Belén</h1>
+    <nav id="main-nav" aria-label="Main navigation">
+      <!-- botones se inyectan desde JS -->
+    </nav>
+  </header>
+
+  <main>
+    <div class="stars" aria-hidden="true"></div>
+
+    <section id="page" class="page" role="main">
+      <!-- contenido dinámico -->
+    </section>
+  </main>
+
+  <footer>
+    <p id="footer-text">© 2025 Tras la Estrella de Belén | Proyecto educativo sobre los Reyes Magos</p>
+  </footer>
+
+  <script>
+    /* -----------------------------
+       Estado de la "app" (sin React)
+       ----------------------------- */
+    (function(){
+      // estado
+      let seccion = 'inicio';
+      let traducido = false;
+      let color = 'white';
+      let indice = 0;
+      let resultado = '';
+      let nombre = '';
+      let respuesta = '';
+
+      // elementos
+      const navEl = document.getElementById('main-nav');
+      const pageEl = document.getElementById('page');
+      const footerTextEl = document.getElementById('footer-text');
+
+      // textos / diccionario (para traducir frases sueltas)
+      const dic = {
+        "Bienvenidos": "Welcome",
+        "Historia": "History",
+        "Tradiciones": "Traditions",
+        "Actividades": "Activities",
+        "Galería": "Gallery",
+        "Créditos": "Credits",
+        "Trivia: ¿Cuánto sabes?": "Trivia: How much do you know?",
+        "Inicio": "Home",
+        "Escribe tu Carta a los Reyes Magos": "Write your Letter to the Wise Men",
+        "Enviar Carta": "Send Letter",
+        "Proyecto elaborado por": "Project created by",
+        "Metodología Ágil": "Agile Methodology",
+        "Framework": "Framework",
+        "Asignatura": "Subject",
+        "Tema": "Topic",
+        "Aplicación web: Tras la Estrella de Belén": "Web Application: Following the Star of Bethlehem",
+        "Proyecto educativo sobre los Reyes Magos": "Educational project about the Three Wise Men",
+        "Siguiente": "Next",
+        "Colorea la estrella": "Color the star",
+        "Tu nombre": "Your name",
+        "Tu correo electrónico": "Your email",
+        "Escribe aquí tu deseo...": "Write your wish here...",
+        "🎉 Has terminado la trivia": "🎉 You've completed the quiz",
+        "✅ ¡Correcto!": "✅ Correct!",
+        "❌ Incorrecto": "❌ Wrong",
+        "Traducir": "Translate",
+        "Translate": "Traducir"
+      };
+
+      // preguntas bilingües (misma que en React)
+      const preguntasES = [
+        { q: "¿Cuántos Reyes Magos visitaron a Jesús?", a: ["2","3","4"], correct: 1 },
+        { q: "¿Qué regalo NO ofrecieron los Magos?", a: ["Oro","Plata","Incienso"], correct: 1 },
+        { q: "¿Qué siguieron los Reyes Magos?", a: ["Un arco iris","Una estrella","Un cometa"], correct: 1 },
+      ];
+      const preguntasEN = [
+        { q: "How many Wise Men visited Jesus?", a: ["2","3","4"], correct: 1 },
+        { q: "Which gift did the Magi NOT offer?", a: ["Gold","Silver","Incense"], correct: 1 },
+        { q: "What did the Wise Men follow?", a: ["A rainbow","A star","A comet"], correct: 1 },
+      ];
+
+      function tText(text){
+        if (!traducido) return text;
+        
+        if(dic[text]) return dic[text];
+        
+        return text;
+      }
+
+      /* -------------------
+         RENDER NAV
+         ------------------- */
+      const navIds = ["inicio","historia","tradiciones","actividades","carta","creditos"];
+      function renderNav(){
+        navEl.innerHTML = '';
+        navIds.forEach(id => {
+          const label = capitalize(id);
+          const btn = document.createElement('button');
+          btn.className = 'nav-btn';
+          btn.textContent = traducido ? (dic[label] || label) : label.charAt(0).toUpperCase() + label.slice(1);
+          btn.onclick = () => { seccion = id; resultado=''; indice=0; render(); };
+          navEl.appendChild(btn);
+        });
+        // translate toggle
+        const trbtn = document.createElement('button');
+        trbtn.className = 'nav-btn translate-btn';
+        trbtn.textContent = '🌐 ' + (traducido ? 'Translate' : 'Traducir');
+        trbtn.onclick = () => { traducido = !traducido; render(); };
+        navEl.appendChild(trbtn);
+      }
+
+      /* -------------------
+         RENDER PAGE CONTENT
+         ------------------- */
+      function render(){
+        renderNav();
+        footerTextEl.textContent = traducido
+          ? "© 2025 Following the Star of Bethlehem | Educational project about the Three Wise Men"
+          : "© 2025 Tras la Estrella de Belén | Proyecto educativo sobre los Reyes Magos";
+
+        // choose section renderer
+        switch(seccion){
+          case 'historia': renderHistoria(); break;
+          case 'tradiciones': renderTradiciones(); break;
+          case 'actividades': renderActividades(); break;
+          case 'carta': renderCarta(); break;
+          case 'galeria': renderGaleria(); break;
+          case 'creditos': renderCreditos(); break;
+          default: renderInicio();
+        }
+      }
+
+      function renderInicio(){
+        pageEl.innerHTML = `
+          <h2>${tText('Bienvenidos')}</h2>
+          <p>
+            ${traducido
+              ? "Explore the history, traditions and activities about the Three Wise Men and their magical journey to Bethlehem."
+              : "Explora la historia, tradiciones y actividades sobre los Reyes Magos y su mágica travesía hacia Belén."
+            }
+          </p>
+        `;
+      }
+
+      function renderHistoria(){
+        pageEl.innerHTML = `
+          <h2>${tText('Historia')}</h2>
+          <p>
+            ${traducido
+              ? "The Three Wise Men —Melchior, Caspar and Balthazar— travelled from distant lands following a bright star that guided them to Bethlehem. Their purpose was to worship the Baby Jesus, the King who had been born. Each brought a special gift: Melchior offered gold (a symbol of kingship); Caspar, incense (a symbol of divinity); and Balthazar, myrrh, which represents humanity and sacrifice. After offering their gifts, they returned to their homes filled with faith and hope."
+              : "Los Reyes Magos —Melchor, Gaspar y Baltasar— viajaron desde tierras lejanas siguiendo una estrella brillante que los guió hasta Belén. Su propósito era adorar al Niño Jesús, el Rey que había nacido. Cada uno llevó un regalo especial: Melchor ofreció oro, símbolo de realeza; Gaspar, incienso, símbolo de divinidad; y Baltasar, mirra, que representa humanidad y sacrificio. Después de entregar sus ofrendas, regresaron a sus hogares llenos de fe y esperanza."
+            }
+          </p>
+        `;
+      }
+
+      function renderTradiciones(){
+        pageEl.innerHTML = `
+          <h2>${tText('Tradiciones')}</h2>
+          <div class="grid">
+            <div class="card">
+              <h3>España</h3>
+              <p style="margin:0">
+                ${traducido
+                  ? "On January 6th in Spain it is the Day of the Wise Men, a celebration that commemorates the visit of the Three Wise Men to baby Jesus and marks the end of the Christmas festivities. It is a public holiday where children receive gifts on the night of January 5th to 6th. Families gather to eat the traditional 'Roscón de Reyes', a circular cake with surprises hidden inside."
+                  : "El 6 de enero en España es el Día de Reyes, una festividad que celebra la visita de los Tres Reyes Magos al niño Jesús y marca el fin de las celebraciones navideñas. Es un día festivo en toda España donde los niños reciben regalos de los Reyes Magos la noche del 5 al 6 de enero. Las familias se reúnen para comer el tradicional roscón de Reyes, un pastel circular con sorpresas escondidas en su interior."
+                }
+              </p>
+            </div>
+            <div class="card">
+              <h3>México</h3>
+              <p style="margin:0">
+                ${traducido
+                  ? "In Mexico January 6th is mainly celebrated with the arrival of the Wise Men, exchanging gifts for children and sharing the 'Rosca de Reyes' with family."
+                  : "El 6 de enero en México se celebra principalmente la llegada de los Reyes Magos con el intercambio de regalos para los niños y la partida de la Rosca de Reyes en familia."
+                }
+              </p>
+            </div>
+            <div class="card">
+              <h3>Italia</h3>
+              <p style="margin:0">
+                ${traducido
+                  ? "January 6th in Italy is Epiphany, usually personified by La Befana, an old witch who brings gifts to children. Cities organize parades and markets."
+                  : "El 6 de enero en Italia se celebra la Epifanía, un día festivo que marca el fin de las celebraciones navideñas, protagonizado por la figura de La Befana, una anciana bruja que, según la tradición, vuela en su escoba para llevar regalos a los niños."
+                }
+              </p>
+            </div>
+          </div>
+        `;
+      }
+
+      /* ACTIVIDADES: incluye trivia + estrella coloreable */
+      function renderActividades(){
+        const preguntas = traducido ? preguntasEN : preguntasES;
+        const preguntaActual = preguntas[indice] || null;
+        const preguntaHtml = preguntaActual ? `
+          <p style="font-weight:700">${escapeHtml(preguntaActual.q)}</p>
+          <div id="answers" style="margin-top:10px"></div>
+          <p class="result-text" id="resultado">${escapeHtml(resultado)}</p>
+          <div style="margin-top:8px;">
+            <button id="siguienteBtn" class="btn">${tText('Siguiente')}</button>
+          </div>
+        ` : `<p style="font-weight:700">${tText("🎉 Has terminado la trivia")}</p>`;
+
+        pageEl.innerHTML = `
+          <h2>${tText('Actividades')}</h2>
+
+          <div class="card" id="trivia-card">
+            <h3>${tText('Trivia: ¿Cuánto sabes?')}</h3>
+            ${preguntaHtml}
+          </div>
+
+          <div class="card" id="star-card" style="margin-top:18px;">
+            <h3>${tText('Colorea la estrella')}</h3>
+            <div class="star-controls" aria-hidden="false">
+              <button class="btn small-btn" data-color="red" style="background:red;border-radius:6px;"></button>
+              <button class="btn small-btn" data-color="yellow" style="background:yellow;border-radius:6px;"></button>
+              <button class="btn small-btn" data-color="blue" style="background:blue;border-radius:6px;"></button>
+            </div>
+
+            <svg class="star-svg" width="120" height="120" viewBox="0 0 100 100" role="img" aria-label="Estrella coloreable">
+              <polygon id="the-star" points="50,5 61,40 98,40 68,60 79,95 50,75 21,95 32,60 2,40 39,40" fill="${color}"></polygon>
+            </svg>
+            <p style="margin-top:6px; color:var(--muted)">${traducido ? `Click the star to confirm color (${color})` : `Haz clic en la estrella para confirmar color (${color})`}</p>
+          </div>
+        `;
+
+        // montar respuestas
+        if (preguntaActual){
+          const answersEl = document.getElementById('answers');
+          preguntaActual.a.forEach((op, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'btn small-btn';
+            btn.textContent = op;
+            btn.onclick = () => verificar(i);
+            answersEl.appendChild(btn);
+          });
+          document.getElementById('siguienteBtn').onclick = siguientePregunta;
+        }
+
+        // star controls
+        document.querySelectorAll('[data-color]').forEach(b=>{
+          b.onclick = (ev) => {
+            color = b.getAttribute('data-color');
+            const star = document.getElementById('the-star');
+            if(star) star.setAttribute('fill', color);
+          };
+        });
+        const starSvg = document.querySelector('.star-svg');
+        if (starSvg){
+          starSvg.onclick = () => {
+            alert(traducido ? `You've colored the star ${color}` : `Has pintado la estrella de ${color}`);
+          }
+        }
+      }
+
+      function verificar(i){
+        const preguntas = traducido ? preguntasEN : preguntasES;
+        const correcta = preguntas[indice].correct;
+        resultado = (i === correcta) ? (traducido ? "✅ Correct!" : "✅ ¡Correcto!") : (traducido ? "❌ Wrong" : "❌ Incorrecto");
+        render(); // re-render para mostrar resultado
+      }
+
+      function siguientePregunta(){
+        const preguntas = traducido ? preguntasEN : preguntasES;
+        if (indice < preguntas.length - 1){
+          indice++;
+          resultado = '';
+        } else {
+          resultado = traducido ? "🎉 You've completed the quiz" : "🎉 Has terminado la trivia";
+        }
+        render();
+      }
+
+      /* CARTA: formulario */
+      function renderCarta(){
+        pageEl.innerHTML = `
+          <h2>${tText('Escribe tu Carta a los Reyes Magos')}</h2>
+          <div class="card">
+            <form id="cartaForm">
+              <input id="nombreInput" class="input" type="text" placeholder="${traducido ? 'Your name' : 'Tu nombre'}" required />
+              <input id="emailInput" class="input" type="email" placeholder="${traducido ? 'Your email' : 'Tu correo electrónico'}" required />
+              <textarea id="mensajeInput" class="input" placeholder="${traducido ? 'Write your wish here...' : 'Escribe aquí tu deseo...'}" required></textarea>
+              <div style="text-align:center; margin-top:8px;">
+                <button type="submit" class="btn">${tText('Enviar Carta')}</button>
+              </div>
+            </form>
+            <p id="respuestaTexto" style="margin-top:10px; font-weight:700">${escapeHtml(respuesta)}</p>
+          </div>
+        `;
+
+        const form = document.getElementById('cartaForm');
+        form.onsubmit = function(e){
+          e.preventDefault();
+          nombre = document.getElementById('nombreInput').value.trim();
+          // email y mensaje no se guardan pero son required
+          const email = document.getElementById('emailInput').value.trim();
+          const mensaje = document.getElementById('mensajeInput').value.trim();
+          if(!nombre){ alert(traducido ? "Please enter your name" : "Por favor escribe tu nombre"); return; }
+          respuesta = traducido
+            ? `🎁 Thank you ${escapeHtml(nombre)}, we'll try to leave that wish under your tree this January 6th.`
+            : `🎁 Gracias ${escapeHtml(nombre)}, trataremos de dejar ese deseo bajo tu árbol este 6 de enero.`;
+          // limpiar nombre (tal como en el React original)
+          nombre = '';
+          form.reset();
+          document.getElementById('respuestaTexto').textContent = respuesta;
+        };
+      }
+
+     
+    
+
+      /* CREDITOS */
+      function renderCreditos(){
+        pageEl.innerHTML = `
+          <h2>${tText('Créditos')}</h2>
+          <p style="max-width:700px;margin:0 auto;">
+            ${tText('Proyecto elaborado por')} <b>Pérez Marroquín Yaelin Arisbeth</b> y <b>Hernández Gutiérrez Diana Belén</b>.<br/>
+            ${tText('Metodología Ágil')}: <b>FDD (Feature Driven Development)</b><br/>
+            ${tText('Framework')}: <b>React.js</b><br/>
+            ${tText('Asignatura')}: <b>Desarrollo de software con herramientas orientadas a la productividad</b><br/>
+            ${tText('Tema')}: <b>Aplicación web: Tras la Estrella de Belén</b>
+          </p>
+        `;
+      }
+
+      /* helpers */
+      function capitalize(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+      function escapeHtml(str){
+        if(!str && str !== '') return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      /* init render */
+      render();
+
+      /* Expose for debugging (optional) */
+      window._app = {
+        getState: () => ({ seccion, traducido, color, indice, resultado, nombre, respuesta }),
+        setLang: (l) => { traducido = !!l; render(); }
+      };
+    })();
+  </script>
+</body>
+</html>
